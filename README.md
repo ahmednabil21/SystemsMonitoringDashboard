@@ -27,7 +27,15 @@ Open http://localhost:5173
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build |
 
+## Deploy on Vercel
+
+The repo includes `api/check.js` as a serverless function so monitoring works in production (not only during `npm run dev`).
+
+```bash
+# Connect the GitHub repo on vercel.com — default Vite settings work
+```
+
 ## Notes
 
 - API credentials are stored in browser `localStorage` for local monitoring only.
-- The Vite dev proxy is required for cross-origin API checks during development.
+- `/api/check` runs via Vite middleware in dev and Vercel serverless in production.

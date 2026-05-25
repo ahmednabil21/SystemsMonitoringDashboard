@@ -5,11 +5,18 @@ const STORAGE_KEY = "api-status-systems";
 export const emptyAuth = () => ({ phoneNumber: "", password: "" });
 
 export function normalizeSystem(system) {
+  const auth = system.auth ?? emptyAuth();
   return {
     ...system,
     nameEn: system.nameEn ?? system.name,
     requiresAuth: Boolean(system.requiresAuth),
-    auth: system.auth ?? emptyAuth(),
+    auth: {
+      phoneNumber: auth.phoneNumber ?? "",
+      password: auth.password ?? "",
+      loginStyle: auth.loginStyle,
+      monitorLogin: Boolean(auth.monitorLogin),
+      loginUrl: auth.loginUrl,
+    },
   };
 }
 

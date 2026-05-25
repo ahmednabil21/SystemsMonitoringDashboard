@@ -241,8 +241,10 @@ export default function ApiStatusDashboard() {
       return;
     }
 
+    const needsCreds =
+      system.requiresAuth || Boolean(system.auth?.monitorLogin);
     if (
-      system.requiresAuth &&
+      needsCreds &&
       (!system.auth?.phoneNumber?.trim() || !system.auth?.password)
     ) {
       setStatuses((prev) => ({ ...prev, [system.id]: "offline" }));
@@ -252,7 +254,7 @@ export default function ApiStatusDashboard() {
     try {
       const result = await requestCheck(
         targetUrl,
-        system.requiresAuth ? system.auth : null,
+        system.requiresAuth || system.auth?.monitorLogin ? system.auth : null,
       );
       setStatuses((prev) => ({
         ...prev,

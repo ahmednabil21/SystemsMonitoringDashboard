@@ -35,7 +35,13 @@ The repo includes `api/check.js` as a serverless function so monitoring works in
 # Connect the GitHub repo on vercel.com — default Vite settings work
 ```
 
+## Default systems (persist on deploy)
+
+Built-in systems live in `src/config/systems.js` and are loaded from code on every visit, so URLs and credentials are **not lost** when you deploy to Vercel.
+
+To change a built-in system permanently, edit that file and push to GitHub. Systems you add from the UI are stored in `localStorage` only (per browser).
+
 ## Notes
 
-- API credentials are stored in browser `localStorage` for local monitoring only.
+- Built-in API credentials are in `src/config/systems.js` (committed to the repo).
 - `/api/check` runs via Vite middleware in dev and Vercel serverless in production.

@@ -1,34 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
+import { BUILTIN_SYSTEM_IDS } from "../config/systems";
 import { useLanguage } from "../i18n/useLanguage";
+import {
+  emptyAuth,
+  getSystemDisplayName,
+  loadSystems,
+  normalizeSystem,
+  saveExtraSystems,
+} from "../lib/systemsStorage";
 
-const STORAGE_KEY = "api-status-systems";
 const POLL_INTERVAL_MS = 5000;
-
-const emptyAuth = () => ({ phoneNumber: "", password: "" });
-
-const defaultSystems = [
-  { id: crypto.randomUUID(), name: "Auth API", url: "" },
-  { id: crypto.randomUUID(), name: "Orders API", url: "" },
-  { id: crypto.randomUUID(), name: "Payments API", url: "" },
-];
-
-function normalizeSystem(system) {
-  return {
-    ...system,
-    requiresAuth: Boolean(system.requiresAuth),
-    auth: system.auth ?? emptyAuth(),
-  };
-}
-
-function loadSystems() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved).map(normalizeSystem);
-  } catch {
-    /* ignore */
-  }
-  return defaultSystems.map(normalizeSystem);
-}
 
 async function requestCheck(targetUrl, auth) {
   const hasAuth = auth?.phoneNumber?.trim() && auth?.password;
@@ -146,7 +127,15 @@ function AuthFields({ auth, onChange, idPrefix, t }) {
   );
 }
 
-function MonitorCard({ system, status, canDelete, onEdit, onDelete, t }) {
+function MonitorCard({
+  system,
+  displayName,
+  status,
+  canDelete,
+  onEdit,
+  onDelete,
+  t,
+}) {
   const isOnline = status === "online";
   const hasUrl = Boolean(system.url.trim());
 
@@ -180,7 +169,7 @@ function MonitorCard({ system, status, canDelete, onEdit, onDelete, t }) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 truncate">
-            {system.name}
+            {displayName}
           </h3>
           {system.requiresAuth && (
             <p className="text-xs text-amber-600 mt-1 font-medium">
@@ -242,7 +231,7 @@ export default function ApiStatusDashboard() {
   const [editDraft, setEditDraft] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(systems));
+    saveExtraSystems(systems);
   }, [systems]);
 
   const checkApi = useCallback(async (system) => {
@@ -426,8 +415,9 @@ export default function ApiStatusDashboard() {
               <MonitorCard
                 key={system.id}
                 system={system}
+                displayName={getSystemDisplayName(system, lang)}
                 status={statuses[system.id]}
-                canDelete={systems.length > 1}
+                canDelete={!BUILTIN_SYSTEM_IDS.has(system.id)}
                 onEdit={() => startEdit(system)}
                 onDelete={() => removeSystem(system.id)}
                 t={t}

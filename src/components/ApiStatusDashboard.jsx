@@ -12,12 +12,20 @@ import {
 const POLL_INTERVAL_MS = 5000;
 
 async function requestCheck(targetUrl, auth) {
-  const hasAuth = auth?.phoneNumber?.trim() && auth?.password;
+  const hasCredentials =
+    Boolean(auth?.phoneNumber?.trim()) &&
+    auth?.password !== undefined &&
+    auth?.password !== null &&
+    String(auth.password).length > 0;
+
   const body = { url: targetUrl };
-  if (hasAuth) {
+  if (hasCredentials || auth?.monitorLogin) {
     body.auth = {
-      phoneNumber: auth.phoneNumber.trim(),
-      password: auth.password,
+      phoneNumber: String(auth.phoneNumber ?? "").trim(),
+      password: String(auth.password ?? ""),
+      ...(auth.loginStyle && { loginStyle: auth.loginStyle }),
+      ...(auth.monitorLogin && { monitorLogin: true }),
+      ...(auth.loginUrl && { loginUrl: auth.loginUrl }),
     };
   }
 

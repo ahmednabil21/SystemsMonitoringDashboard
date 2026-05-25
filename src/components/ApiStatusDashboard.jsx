@@ -45,15 +45,11 @@ function EditIcon() {
 
 function LanguageSwitcher({ lang, setLang, t }) {
   return (
-    <div
-      className="flex rounded-lg border border-slate-200 overflow-hidden bg-white"
-      role="group"
-      aria-label="Language"
-    >
+    <div className="monitor-lang-switch" role="group" aria-label="Language">
       <button
         type="button"
         onClick={() => setLang("ar")}
-        className={`monitor-lang-btn rounded-none border-0 ${
+        className={`monitor-lang-btn ${
           lang === "ar" ? "monitor-lang-btn--active" : ""
         }`}
       >
@@ -62,7 +58,7 @@ function LanguageSwitcher({ lang, setLang, t }) {
       <button
         type="button"
         onClick={() => setLang("en")}
-        className={`monitor-lang-btn rounded-none border-0 border-s border-slate-200 ${
+        className={`monitor-lang-btn ${
           lang === "en" ? "monitor-lang-btn--active" : ""
         }`}
       >
@@ -95,7 +91,7 @@ function Modal({ title, onClose, children }) {
 
 function AuthFields({ auth, onChange, idPrefix, t }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 mt-3 border-t border-slate-200">
+    <div className="monitor-auth-grid">
       <div>
         <label className="monitor-label" htmlFor={`${idPrefix}-phone`}>
           {t("phoneUser")}
@@ -164,37 +160,38 @@ function MonitorCard({
         ? t("online")
         : t("offline");
 
+  const dotClass = [
+    "monitor-card__dot",
+    !status && "monitor-card__dot--pending",
+    isOnline && "monitor-card__dot--online",
+    status === "offline" && "monitor-card__dot--offline",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <article className={cardClass}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-bold text-slate-900 truncate">
-            {displayName}
-          </h3>
+      <div className="monitor-card__row">
+        <div className="monitor-card__info">
+          <h3 className="monitor-card__name">{displayName}</h3>
           {system.requiresAuth && (
-            <p className="text-xs text-amber-600 mt-1 font-medium">
+            <p className="monitor-card__meta monitor-card__meta--auth">
               {t("protected")}
             </p>
           )}
           {!hasUrl && (
-            <p className="text-xs text-slate-400 mt-1">{t("noUrlYet")}</p>
+            <p className="monitor-card__meta">{t("noUrlYet")}</p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="monitor-card__tools">
           <span
-            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-              isOnline
-                ? "bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.25)]"
-                : status === "offline"
-                  ? "bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.25)]"
-                  : "bg-slate-300 animate-pulse"
-            }`}
+            className={dotClass}
             title={status ? statusLabel : t("checking")}
           />
           <button
             type="button"
             onClick={onEdit}
-            className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
+            className="monitor-card__icon-btn"
             aria-label={t("edit")}
             title={t("edit")}
           >
@@ -204,7 +201,7 @@ function MonitorCard({
             <button
               type="button"
               onClick={onDelete}
-              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-lg leading-none"
+              className="monitor-card__icon-btn monitor-card__icon-btn--delete"
               aria-label={t("delete")}
               title={t("delete")}
             >
@@ -213,9 +210,7 @@ function MonitorCard({
           )}
         </div>
       </div>
-      <div className={`${badgeClass} mt-auto w-full text-center`}>
-        {statusLabel}
-      </div>
+      <div className={badgeClass}>{statusLabel}</div>
     </article>
   );
 }
@@ -353,47 +348,40 @@ export default function ApiStatusDashboard() {
 
   return (
     <div className="monitor-page">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-sky-600 mb-1">
-              {t("monitoring")}
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-              {t("title")}
-            </h1>
-            <p className="text-sm text-slate-500 mt-2 max-w-xl">{t("subtitle")}</p>
+      <div className="monitor-shell">
+        <header className="monitor-header">
+          <div className="monitor-header__brand">
+            <p className="monitor-header__eyebrow">{t("monitoring")}</p>
+            <h1 className="monitor-header__title">{t("title")}</h1>
+            <p className="monitor-header__subtitle">{t("subtitle")}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="monitor-header__actions">
             <LanguageSwitcher lang={lang} setLang={setLang} t={t} />
             <button
               type="button"
               onClick={openAddForm}
-              className="px-4 py-2.5 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 shadow-sm transition-colors"
+              className="monitor-btn-primary"
             >
               + {t("addSystem")}
             </button>
           </div>
         </header>
 
-        <section
-          className="grid grid-cols-3 gap-3 sm:gap-4 mb-8"
-          aria-label={t("monitoring")}
-        >
+        <section className="monitor-stats" aria-label={t("monitoring")}>
           <div className="monitor-stat">
-            <div className="monitor-stat__value text-slate-900">
+            <div className="monitor-stat__value monitor-stat__value--total">
               {systems.length}
             </div>
             <div className="monitor-stat__label">{t("total")}</div>
           </div>
           <div className="monitor-stat">
-            <div className="monitor-stat__value text-green-600">
+            <div className="monitor-stat__value monitor-stat__value--online">
               {onlineCount}
             </div>
             <div className="monitor-stat__label">{t("onlineCount")}</div>
           </div>
           <div className="monitor-stat">
-            <div className="monitor-stat__value text-red-600">
+            <div className="monitor-stat__value monitor-stat__value--offline">
               {offlineCount}
             </div>
             <div className="monitor-stat__label">{t("offlineCount")}</div>
@@ -401,18 +389,19 @@ export default function ApiStatusDashboard() {
         </section>
 
         {systems.length === 0 ? (
-          <div className="text-center py-16 px-4 bg-white border border-slate-200 rounded-xl">
-            <p className="text-slate-500">{t("noSystems")}</p>
+          <div className="monitor-empty">
+            <p>{t("noSystems")}</p>
             <button
               type="button"
               onClick={openAddForm}
-              className="mt-4 px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700"
+              className="monitor-btn-primary"
+              style={{ marginTop: "1rem" }}
             >
               + {t("addSystem")}
             </button>
           </div>
         ) : (
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <section className="monitor-grid">
             {systems.map((system) => (
               <MonitorCard
                 key={system.id}
@@ -447,28 +436,29 @@ export default function ApiStatusDashboard() {
                 autoFocus
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-600 mt-4 cursor-pointer">
+            <label className="monitor-checkbox">
               <input
                 type="checkbox"
                 checked={newRequiresAuth}
                 onChange={(e) => setNewRequiresAuth(e.target.checked)}
-                className="rounded border-slate-300"
               />
               {t("requiresAuth")}
             </label>
-            <p className="text-xs text-slate-400 mt-3">{t("addHint")}</p>
-            <div className="flex gap-2 mt-5">
+            <p className="monitor-header__subtitle" style={{ marginTop: "0.75rem" }}>
+              {t("addHint")}
+            </p>
+            <div className="monitor-modal-actions">
               <button
                 type="submit"
                 disabled={!newSystemName.trim()}
-                className="flex-1 px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-50"
+                className="monitor-btn-primary"
               >
                 {t("add")}
               </button>
               <button
                 type="button"
                 onClick={cancelAddForm}
-                className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200"
+                className="monitor-btn-ghost"
               >
                 {t("cancel")}
               </button>
@@ -491,7 +481,7 @@ export default function ApiStatusDashboard() {
               onChange={(e) => updateDraft("name", e.target.value)}
             />
           </div>
-          <div className="mt-3">
+          <div style={{ marginTop: "0.75rem" }}>
             <label className="monitor-label" htmlFor="edit-url">
               {t("apiUrl")}
             </label>
@@ -504,12 +494,11 @@ export default function ApiStatusDashboard() {
               placeholder={t("apiUrlPlaceholder")}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-600 mt-4 cursor-pointer">
+          <label className="monitor-checkbox">
             <input
               type="checkbox"
               checked={editDraft.requiresAuth}
               onChange={(e) => updateDraft("requiresAuth", e.target.checked)}
-              className="rounded border-slate-300"
             />
             {t("requiresAuth")}
           </label>
@@ -521,19 +510,19 @@ export default function ApiStatusDashboard() {
               t={t}
             />
           )}
-          <div className="flex gap-2 mt-5">
+          <div className="monitor-modal-actions">
             <button
               type="button"
               onClick={saveEdit}
               disabled={!editDraft.name.trim()}
-              className="flex-1 px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-50"
+              className="monitor-btn-primary"
             >
               {t("save")}
             </button>
             <button
               type="button"
               onClick={cancelEdit}
-              className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200"
+              className="monitor-btn-ghost"
             >
               {t("cancel")}
             </button>

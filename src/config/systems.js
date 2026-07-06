@@ -19,7 +19,7 @@ export const BUILTIN_SYSTEMS = [
     id: "system-cds",
     name: "نظام التوزيع الوظيفي",
     nameEn: "Job Distribution System",
-    url: "https://cds.cmfsa-iq.com",
+    url: "http://cds-cmfsa.duckdns.org/dashboard/login",
     requiresAuth: false,
     auth: { phoneNumber: "", password: "" },
   },

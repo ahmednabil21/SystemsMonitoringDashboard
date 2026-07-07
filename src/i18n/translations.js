@@ -37,8 +37,6 @@ export const translations = {
   },
   en: {
     title: "Systems Monitoring Dashboard",
-    subtitle:
-      "API health monitoring — auto-refreshes every 5 seconds. ONLINE on 200, OFFLINE on error.",
     addSystem: "Add system",
     addSystemTitle: "Add new system",
     editSystemTitle: "Edit system",

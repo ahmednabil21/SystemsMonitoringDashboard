@@ -127,6 +127,14 @@ export const BUILTIN_SYSTEMS = [
     requiresAuth: false,
     auth: { phoneNumber: "", password: "" },
   },
+  {
+    id: "system-medicalpoint",
+    name: "تطبيق الاحصائي",
+    nameEn: "Statistical Application",
+    url: "https://app-medicalpoint.cmfsa-iq.com/",
+    requiresAuth: false,
+    auth: { phoneNumber: "", password: "" },
+  },
 ];
 
 export const BUILTIN_SYSTEM_IDS = new Set(BUILTIN_SYSTEMS.map((s) => s.id));

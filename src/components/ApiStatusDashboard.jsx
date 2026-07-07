@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BUILTIN_SYSTEM_IDS } from "../config/systems";
 import { useLanguage } from "../i18n/useLanguage";
+import { useTheme } from "../i18n/useTheme";
 import {
   emptyAuth,
   getSystemDisplayName,
@@ -73,6 +74,38 @@ function LanguageSwitcher({ lang, setLang, t }) {
         {t("langEn")}
       </button>
     </div>
+  );
+}
+
+function ThemeToggle({ isDark, onToggle, t }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="monitor-theme-btn"
+      aria-label={t("toggleTheme")}
+      title={isDark ? t("themeLight") : t("themeDark")}
+    >
+      {isDark ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm4 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-.464 4.95.707.707a1 1 0 0 0 1.414-1.414l-.707-.707a1 1 0 0 0-1.414 1.414Zm2.12-10.607a1 1 0 0 1 0 1.414l-.706.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.413 0ZM17 11a1 1 0 1 0 0-2h-1a1 1 0 1 0 0 2h1Zm-7 4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM5.05 6.464A1 1 0 1 0 3.636 5.05l-.707-.707a1 1 0 0 0-1.414 1.414l.707.707a1 1 0 0 0 1.414-1.414ZM4 11a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2h1Zm9.95 2.536a1 1 0 0 0-1.414 1.414l.707.707a1 1 0 0 0 1.414-1.414l-.707-.707ZM7.05 15.536a1 1 0 0 0 1.414 1.414l-.707.707a1 1 0 1 0-1.414-1.414l.707-.707Z" />
+        </svg>
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M17.293 13.293A8 8 0 0 1 6.707 2.707a8.001 8.001 0 1 0 10.586 10.586Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -225,6 +258,7 @@ function MonitorCard({
 
 export default function ApiStatusDashboard() {
   const { lang, setLang, t } = useLanguage();
+  const { isDark, toggleTheme } = useTheme();
   const [systems, setSystems] = useState(loadSystems);
   const [statuses, setStatuses] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
@@ -364,6 +398,7 @@ export default function ApiStatusDashboard() {
             <p className="monitor-header__subtitle">{t("subtitle")}</p>
           </div>
           <div className="monitor-header__actions">
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} t={t} />
             <LanguageSwitcher lang={lang} setLang={setLang} t={t} />
             <button
               type="button"

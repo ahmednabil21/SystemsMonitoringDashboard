@@ -34,6 +34,9 @@ export const translations = {
     noSystems: "لا توجد أنظمة للمراقبة. أضف نظاماً للبدء.",
     langAr: "عربي",
     langEn: "English",
+    themeDark: "الوضع الليلي",
+    themeLight: "الوضع النهاري",
+    toggleTheme: "تبديل المظهر",
   },
   en: {
     title: "Systems Monitoring Dashboard",
@@ -68,5 +71,8 @@ export const translations = {
     noSystems: "No systems to monitor. Add a system to get started.",
     langAr: "عربي",
     langEn: "English",
+    themeDark: "Dark mode",
+    themeLight: "Light mode",
+    toggleTheme: "Toggle theme",
   },
 };

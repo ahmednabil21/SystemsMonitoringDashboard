@@ -6,9 +6,14 @@ export const emptyAuth = () => ({ phoneNumber: "", password: "" });
 
 export function normalizeSystem(system) {
   const auth = system.auth ?? emptyAuth();
+  const backendUrl = String(system.backendUrl ?? system.url ?? "").trim();
+  const frontendUrl = String(system.frontendUrl ?? "").trim();
   return {
     ...system,
     nameEn: system.nameEn ?? system.name,
+    frontendUrl,
+    backendUrl,
+    url: backendUrl || frontendUrl,
     requiresAuth: Boolean(system.requiresAuth),
     auth: {
       phoneNumber: auth.phoneNumber ?? "",

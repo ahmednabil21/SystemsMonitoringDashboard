@@ -38,6 +38,24 @@ async function requestCheck(targetUrl, auth) {
   return response.json();
 }
 
+function getCheckKey(systemId, target) {
+  return `${systemId}:${target}`;
+}
+
+function getEndpointList(system) {
+  const backendUrl = String(system.backendUrl ?? system.url ?? "").trim();
+  const frontendUrl = String(system.frontendUrl ?? "").trim();
+  return [
+    { key: "frontend", labelKey: "frontend", url: frontendUrl, auth: null },
+    {
+      key: "backend",
+      labelKey: "backend",
+      url: backendUrl,
+      auth: system.requiresAuth || system.auth?.monitorLogin ? system.auth : null,
+    },
+  ];
+}
+
 function EditIcon() {
   return (
     <svg
@@ -167,48 +185,39 @@ function AuthFields({ auth, onChange, idPrefix, t }) {
 function MonitorCard({
   system,
   displayName,
-  status,
+  checks,
   canDelete,
   onEdit,
   onDelete,
   t,
 }) {
-  const isOnline = status === "online";
-  const hasUrl = Boolean(system.url.trim());
+  const endpoints = getEndpointList(system);
+  const availableChecks = endpoints.filter((endpoint) => endpoint.url);
+  const onlineTargets = availableChecks.filter((endpoint) => {
+    const check = checks[getCheckKey(system.id, endpoint.key)];
+    return check?.status === "online";
+  }).length;
+  const offlineTargets = availableChecks.filter((endpoint) => {
+    const check = checks[getCheckKey(system.id, endpoint.key)];
+    return check?.status === "offline";
+  }).length;
+  const hasAnyTarget = availableChecks.length > 0;
+  const hasOffline = offlineTargets > 0;
+  const isOnline = hasAnyTarget && onlineTargets === availableChecks.length;
 
   const cardClass = [
     "monitor-card",
-    status === "online" && "monitor-card--online",
-    status === "offline" && "monitor-card--offline",
+    isOnline && "monitor-card--online",
+    hasOffline && "monitor-card--offline",
   ]
     .filter(Boolean)
     .join(" ");
 
-  const badgeClass = [
-    "monitor-status-badge",
-    !status && "monitor-status-badge--pending",
-    isOnline && "monitor-status-badge--online",
-    status === "offline" && "monitor-status-badge--offline",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const statusLabel = !status && !hasUrl
+  const cardSummary = !hasAnyTarget
     ? t("enterUrl")
-    : !status
-      ? "..."
-      : isOnline
-        ? t("online")
-        : t("offline");
-
-  const dotClass = [
-    "monitor-card__dot",
-    !status && "monitor-card__dot--pending",
-    isOnline && "monitor-card__dot--online",
-    status === "offline" && "monitor-card__dot--offline",
-  ]
-    .filter(Boolean)
-    .join(" ");
+    : hasOffline
+      ? t("partialOrOffline")
+      : t("online");
 
   return (
     <article className={cardClass}>
@@ -220,15 +229,11 @@ function MonitorCard({
               {t("protected")}
             </p>
           )}
-          {!hasUrl && (
+          {!hasAnyTarget && (
             <p className="monitor-card__meta">{t("noUrlYet")}</p>
           )}
         </div>
         <div className="monitor-card__tools">
-          <span
-            className={dotClass}
-            title={status ? statusLabel : t("checking")}
-          />
           <button
             type="button"
             onClick={onEdit}
@@ -251,7 +256,61 @@ function MonitorCard({
           )}
         </div>
       </div>
-      <div className={badgeClass}>{statusLabel}</div>
+      <div className="monitor-card__targets">
+        {endpoints.map((endpoint) => {
+          const key = getCheckKey(system.id, endpoint.key);
+          const check = checks[key];
+          const hasUrl = Boolean(endpoint.url);
+          const targetStatus = !hasUrl
+            ? "pending"
+            : check?.status ?? "pending";
+          const dotClass = [
+            "monitor-card__dot",
+            targetStatus === "pending" && "monitor-card__dot--pending",
+            targetStatus === "online" && "monitor-card__dot--online",
+            targetStatus === "offline" && "monitor-card__dot--offline",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const badgeClass = [
+            "monitor-status-badge",
+            "monitor-status-badge--compact",
+            targetStatus === "pending" && "monitor-status-badge--pending",
+            targetStatus === "online" && "monitor-status-badge--online",
+            targetStatus === "offline" && "monitor-status-badge--offline",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const statusLabel = !hasUrl
+            ? t("enterUrl")
+            : targetStatus === "pending"
+              ? t("checking")
+              : targetStatus === "online"
+                ? t("online")
+                : t("offline");
+
+          return (
+            <div className="monitor-target" key={key}>
+              <div className="monitor-target__head">
+                <div className="monitor-target__title">
+                  <span className={dotClass} />
+                  <span>{t(endpoint.labelKey)}</span>
+                </div>
+                <span className={badgeClass}>{statusLabel}</span>
+              </div>
+              <div className="monitor-target__meta">
+                <span>
+                  {t("responseTime")}: {check?.responseTimeMs ?? "-"} ms
+                </span>
+                <span>
+                  {t("trafficChecks")}: {check?.checks ?? 0}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="monitor-card__summary">{cardSummary}</p>
     </article>
   );
 }
@@ -260,7 +319,7 @@ export default function ApiStatusDashboard() {
   const { lang, setLang, t } = useLanguage();
   const { isDark, toggleTheme } = useTheme();
   const [systems, setSystems] = useState(loadSystems);
-  const [statuses, setStatuses] = useState({});
+  const [checks, setChecks] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSystemName, setNewSystemName] = useState("");
   const [newRequiresAuth, setNewRequiresAuth] = useState(false);
@@ -271,40 +330,47 @@ export default function ApiStatusDashboard() {
     saveExtraSystems(systems);
   }, [systems]);
 
-  const checkApi = useCallback(async (system) => {
-    const targetUrl = system.url.trim();
-    if (!targetUrl) {
-      setStatuses((prev) => ({ ...prev, [system.id]: "offline" }));
-      return;
-    }
-
-    const needsCreds =
-      system.requiresAuth || Boolean(system.auth?.monitorLogin);
-    if (
-      needsCreds &&
-      (!system.auth?.phoneNumber?.trim() || !system.auth?.password)
-    ) {
-      setStatuses((prev) => ({ ...prev, [system.id]: "offline" }));
-      return;
-    }
+  const checkTarget = useCallback(async (system, target) => {
+    const key = getCheckKey(system.id, target.key);
+    if (!target.url) return;
 
     try {
-      const result = await requestCheck(
-        targetUrl,
-        system.requiresAuth || system.auth?.monitorLogin ? system.auth : null,
-      );
-      setStatuses((prev) => ({
-        ...prev,
-        [system.id]: result.status === 200 ? "online" : "offline",
-      }));
+      const result = await requestCheck(target.url, target.auth);
+      setChecks((prev) => {
+        const before = prev[key] ?? { checks: 0 };
+        return {
+          ...prev,
+          [key]: {
+            status: result.status === 200 ? "online" : "offline",
+            responseTimeMs: result.responseTimeMs ?? null,
+            checks: before.checks + 1,
+            httpStatus: result.status ?? null,
+          },
+        };
+      });
     } catch {
-      setStatuses((prev) => ({ ...prev, [system.id]: "offline" }));
+      setChecks((prev) => {
+        const before = prev[key] ?? { checks: 0 };
+        return {
+          ...prev,
+          [key]: {
+            status: "offline",
+            responseTimeMs: null,
+            checks: before.checks + 1,
+            httpStatus: 0,
+          },
+        };
+      });
     }
   }, []);
 
   const checkAllApis = useCallback(() => {
-    systems.forEach((system) => checkApi(system));
-  }, [systems, checkApi]);
+    systems.forEach((system) => {
+      getEndpointList(system).forEach((target) => {
+        checkTarget(system, target);
+      });
+    });
+  }, [systems, checkTarget]);
 
   useEffect(() => {
     checkAllApis();
@@ -312,10 +378,23 @@ export default function ApiStatusDashboard() {
     return () => clearInterval(interval);
   }, [checkAllApis]);
 
-  const onlineCount = systems.filter((s) => statuses[s.id] === "online").length;
-  const offlineCount = systems.filter(
-    (s) => statuses[s.id] === "offline",
-  ).length;
+  const summary = systems.reduce((acc, system) => {
+    const endpoints = getEndpointList(system).filter((target) => target.url);
+    if (endpoints.length === 0) return acc;
+    endpoints.forEach((target) => {
+      const item = checks[getCheckKey(system.id, target.key)];
+      if (item?.status === "online") acc.online += 1;
+      if (item?.status === "offline") acc.offline += 1;
+      acc.totalTargets += 1;
+      acc.trafficChecks += item?.checks ?? 0;
+    });
+    return acc;
+  }, {
+    online: 0,
+    offline: 0,
+    totalTargets: 0,
+    trafficChecks: 0,
+  });
 
   const startEdit = (system) => {
     setEditingId(system.id);
@@ -368,6 +447,8 @@ export default function ApiStatusDashboard() {
     const newSystem = normalizeSystem({
       id: crypto.randomUUID(),
       name,
+      frontendUrl: "",
+      backendUrl: "",
       url: "",
       requiresAuth: newRequiresAuth,
       auth: emptyAuth(),
@@ -381,9 +462,10 @@ export default function ApiStatusDashboard() {
   const removeSystem = (id) => {
     if (editingId === id) cancelEdit();
     setSystems((prev) => prev.filter((s) => s.id !== id));
-    setStatuses((prev) => {
+    setChecks((prev) => {
       const next = { ...prev };
-      delete next[id];
+      delete next[getCheckKey(id, "frontend")];
+      delete next[getCheckKey(id, "backend")];
       return next;
     });
   };
@@ -410,24 +492,30 @@ export default function ApiStatusDashboard() {
           </div>
         </header>
 
-        <section className="monitor-stats" aria-label={t("monitoring")}>
+        <section className="monitor-stats monitor-stats--four" aria-label={t("monitoring")}>
           <div className="monitor-stat">
             <div className="monitor-stat__value monitor-stat__value--total">
-              {systems.length}
+              {summary.totalTargets}
             </div>
-            <div className="monitor-stat__label">{t("total")}</div>
+            <div className="monitor-stat__label">{t("totalTargets")}</div>
           </div>
           <div className="monitor-stat">
             <div className="monitor-stat__value monitor-stat__value--online">
-              {onlineCount}
+              {summary.online}
             </div>
             <div className="monitor-stat__label">{t("onlineCount")}</div>
           </div>
           <div className="monitor-stat">
             <div className="monitor-stat__value monitor-stat__value--offline">
-              {offlineCount}
+              {summary.offline}
             </div>
             <div className="monitor-stat__label">{t("offlineCount")}</div>
+          </div>
+          <div className="monitor-stat">
+            <div className="monitor-stat__value monitor-stat__value--total">
+              {summary.trafficChecks}
+            </div>
+            <div className="monitor-stat__label">{t("trafficChecks")}</div>
           </div>
         </section>
 
@@ -438,7 +526,6 @@ export default function ApiStatusDashboard() {
               type="button"
               onClick={openAddForm}
               className="monitor-btn-primary"
-              style={{ marginTop: "1rem" }}
             >
               + {t("addSystem")}
             </button>
@@ -450,7 +537,7 @@ export default function ApiStatusDashboard() {
                 key={system.id}
                 system={system}
                 displayName={getSystemDisplayName(system, lang)}
-                status={statuses[system.id]}
+                checks={checks}
                 canDelete={!BUILTIN_SYSTEM_IDS.has(system.id)}
                 onEdit={() => startEdit(system)}
                 onDelete={() => removeSystem(system.id)}
@@ -487,7 +574,7 @@ export default function ApiStatusDashboard() {
               />
               {t("requiresAuth")}
             </label>
-            <p className="monitor-header__subtitle" style={{ marginTop: "0.75rem" }}>
+            <p className="monitor-header__subtitle monitor-add-hint">
               {t("addHint")}
             </p>
             <div className="monitor-modal-actions">
@@ -526,14 +613,30 @@ export default function ApiStatusDashboard() {
           </div>
           <div style={{ marginTop: "0.75rem" }}>
             <label className="monitor-label" htmlFor="edit-url">
-              {t("apiUrl")}
+              {t("frontendUrl")}
             </label>
             <input
               id="edit-url"
               type="url"
               className="monitor-input"
-              value={editDraft.url}
-              onChange={(e) => updateDraft("url", e.target.value)}
+              value={editDraft.frontendUrl ?? ""}
+              onChange={(e) => updateDraft("frontendUrl", e.target.value)}
+              placeholder={t("frontendUrlPlaceholder")}
+            />
+          </div>
+          <div style={{ marginTop: "0.75rem" }}>
+            <label className="monitor-label" htmlFor="edit-backend-url">
+              {t("apiUrl")}
+            </label>
+            <input
+              id="edit-backend-url"
+              type="url"
+              className="monitor-input"
+              value={editDraft.backendUrl ?? editDraft.url ?? ""}
+              onChange={(e) => {
+                updateDraft("backendUrl", e.target.value);
+                updateDraft("url", e.target.value);
+              }}
               placeholder={t("apiUrlPlaceholder")}
             />
           </div>

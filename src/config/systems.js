@@ -139,6 +139,7 @@ export const BUILTIN_SYSTEMS = [
     url: "https://medical-api.cmfsa-iq.com/api/Dashbord/GetDashboardCounts",
     requiresAuth: true,
     auth: {
+      
       phoneNumber: "ghafar",
       password: "1212",
     },

@@ -134,7 +134,7 @@ export const BUILTIN_SYSTEMS = [
     id: "system-medical",
     name: "النظام الطبي",
     nameEn: "Medical System",
-    frontendUrl: "https://medical.cmfsa-iq.com",
+    frontendUrl: "https://dashboard-medicalpoint.cmfsa-iq.com/",
     backendUrl: "https://medical-api.cmfsa-iq.com/api/Dashbord/GetDashboardCounts",
     url: "https://medical-api.cmfsa-iq.com/api/Dashbord/GetDashboardCounts",
     requiresAuth: true,
